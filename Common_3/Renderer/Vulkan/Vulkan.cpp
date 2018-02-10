@@ -730,13 +730,13 @@ namespace RENDERER_CPP_NAMESPACE {
 	  uint64_t* pHash = (uint64_t*)alloca(setCount * sizeof(uint64_t));
 
 	  // Loop through input params to check for new data
-	  for (uint32_t i = 0; i < numDescriptors; ++i)
+	  for (uint32_t j = 0; j < numDescriptors; ++j)
 	  {
-		  const DescriptorData* pParam = &pDescParams[i];
+		  const DescriptorData* pParam = &pDescParams[j];
 		  ASSERT(pParam);
 		  if (!pParam->pName)
 		  {
-			  LOGERRORF("Name of Descriptor at index (%u) is NULL", i);
+			  LOGERRORF("Name of Descriptor at index (%u) is NULL", j);
 			  return;
 		  }
 

@@ -27,6 +27,10 @@
 
 #define MAX_PLANETS 20 // Does not affect test, just for allocating space in uniform block. Must match with shader.
 
+#if defined(VULKAN)
+#define VULKAN_HLSL
+#endif
+
 //tiny stl
 #include "../../Common_3/ThirdParty/OpenSource/TinySTL/vector.h"
 #include "../../Common_3/ThirdParty/OpenSource/TinySTL/string.h"
@@ -404,6 +408,23 @@ void initApp(const WindowsDesc* window)
 	basicShader = { basicShader.mStages, { hlslFile.GetName(), hlsl, "VSMain" }, { hlslFile.GetName(), hlsl, "PSMain" } };
 	hlslFile.Close();
 #elif defined(VULKAN)
+ #if defined(VULKAN_HLSL)
+  File vertFile = {};
+  File fragFile = {};
+
+  vertFile.Open("skybox.hlsl.vert.spv", FM_ReadBinary, FSRoot::FSR_BinShaders);
+  skyShader.mVert = { vertFile.GetName(), vertFile.ReadText(), "VSMain" };
+  fragFile.Open("skybox.hlsl.frag.spv", FM_ReadBinary, FSRoot::FSR_BinShaders);
+  skyShader.mFrag = { fragFile.GetName(), fragFile.ReadText(), "PSMain" };
+
+  vertFile.Open("basic.hlsl.vert.spv", FM_ReadBinary, FSRoot::FSR_BinShaders);
+  basicShader.mVert = { vertFile.GetName(), vertFile.ReadText(), "VSMain" };
+  fragFile.Open("basic.hlsl.frag.spv", FM_ReadBinary, FSRoot::FSR_BinShaders);
+  basicShader.mFrag = { fragFile.GetName(), fragFile.ReadText(), "PSMain" };
+
+  vertFile.Close();
+  fragFile.Close();
+ #else
 	File vertFile = {};
 	File fragFile = {};
 
@@ -419,6 +440,7 @@ void initApp(const WindowsDesc* window)
 
 	vertFile.Close();
 	fragFile.Close();
+ #endif
 #elif defined(METAL)
     
     FSRoot shaderRoot = FSRoot::FSR_SrcShaders;
@@ -814,7 +836,11 @@ void drawFrame(float deltaTime)
 	cmdBindPipeline(cmd, pSkyBoxDrawPipeline);
 
 	DescriptorData params[7] = {};
-	params[0].pName = "uniformBlock";
+#if defined(VULKAN_HLSL)
+	params[0].pName = "var_uniformBlock";
+#else 
+  params[0].pName = "uniformBlock";
+#endif
 	params[0].ppBuffers = &pSkyboxUniformBuffer;
 	params[1].pName = "RightText";
 	params[1].ppTextures = &pSkyBoxTextures[0];

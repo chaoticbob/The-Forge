@@ -24,6 +24,10 @@
 
 #define _USE_MATH_DEFINES
 
+#if defined(VULKAN)
+#define VULKAN_HLSL
+#endif
+
 // Unit Test for testing Compute Shaders and Tessellation
 // using Responsive Real-Time Grass Rendering for General 3D Scenes
 
@@ -515,7 +519,38 @@ void initApp(const WindowsDesc* window)
 	
 	hlslFile.Close();
 #elif defined(VULKAN)
+ #if defined(VULKAN_HLSL)	
+  File vertGrassFile = {};
+	File fragGrassFile = {};
 
+	vertGrassFile.Open("grass.hlsl.vert.spv", FM_ReadBinary, FSRoot::FSR_BinShaders);
+	grassShader.mVert = { vertGrassFile.GetName(), vertGrassFile.ReadText(), "VSMain" };
+	fragGrassFile.Open("grass.hlsl.frag.spv", FM_ReadBinary, FSRoot::FSR_BinShaders);
+	grassShader.mFrag = { fragGrassFile.GetName(), fragGrassFile.ReadText(), "PSMain" };
+	
+	vertGrassFile.Close();
+	fragGrassFile.Close();
+
+
+	File tescGrassFile = {};
+	File teseGrassFile = {};
+
+	tescGrassFile.Open("grass.hlsl.tesc.spv", FM_ReadBinary, FSRoot::FSR_BinShaders);
+	grassShader.mHull = { tescGrassFile.GetName(), tescGrassFile.ReadText(), "HSMain" };
+	teseGrassFile.Open("grass.hlsl.tese.spv", FM_ReadBinary, FSRoot::FSR_BinShaders);
+	grassShader.mDomain = { teseGrassFile.GetName(), teseGrassFile.ReadText(), "DSMain" };
+
+	tescGrassFile.Close();
+	teseGrassFile.Close();
+
+
+	File computeFile = {};
+
+	computeFile.Open("compute.hlsl.comp.spv", FM_ReadBinary, FSRoot::FSR_BinShaders);
+	computeShader.mComp = { computeFile.GetName(), computeFile.ReadText(), "CSMain" };
+
+	computeFile.Close();
+ #else
 	File vertGrassFile = {};
 	File fragGrassFile = {};
 
@@ -546,7 +581,7 @@ void initApp(const WindowsDesc* window)
 	computeShader.mComp = { computeFile.GetName(), computeFile.ReadText(), "main" };
 
 	computeFile.Close();
-
+ #endif
 #elif defined(METAL)
     
     FSRoot shaderRoot = FSRoot::FSR_SrcShaders;
@@ -917,8 +952,11 @@ void drawFrame(float deltaTime)
 	DescriptorData computeParams[4] = {};
 	cmdBindPipeline(cmd, pComputePipeline);
 
-
+#if defined(VULKAN_HLSL)
+  computeParams[0].pName = "var_GrassUniformBlock";
+#else
 	computeParams[0].pName = "GrassUniformBlock";
+#endif
 	computeParams[0].ppBuffers = &pGrassUniformBuffer;
 
 	computeParams[1].pName = "Blades";
@@ -979,7 +1017,11 @@ void drawFrame(float deltaTime)
 		cmdBindPipeline(cmd, pGrassPipelineForWireframe);
 
 	DescriptorData grassParams[1] = {};
+#if defined(VULKAN_HLSL)
+  grassParams[0].pName = "var_GrassUniformBlock";
+#else
 	grassParams[0].pName = "GrassUniformBlock";
+#endif
 	grassParams[0].ppBuffers = &pGrassUniformBuffer;
 	cmdBindDescriptors(cmd, pGrassRootSignature, 1, grassParams);
 

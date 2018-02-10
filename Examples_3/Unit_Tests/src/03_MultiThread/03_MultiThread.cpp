@@ -24,6 +24,10 @@
 
 #define _USE_MATH_DEFINES
 
+#if defined(VULKAN)
+#define VULKAN_HLSL
+#endif
+
 //tiny stl
 #include "../../Common_3/ThirdParty/OpenSource/TinySTL/vector.h"
 #include "../../Common_3/ThirdParty/OpenSource/TinySTL/string.h"
@@ -159,6 +163,9 @@ Shader*          pGraphShader = nullptr;
 Buffer*          pParticleVertexBuffer = nullptr;
 Buffer*          pProjViewUniformBuffer = nullptr;
 Buffer*          pSkyboxUniformBuffer = nullptr;
+#if defined(VULKAN_HLSL)
+Buffer*          pParticleUniformBuffer = nullptr;
+#endif
 Buffer*          pSkyBoxVertexBuffer = nullptr;
 Buffer*          pBackGroundVertexBuffer[gImageCount] = { nullptr };
 Pipeline*        pPipeline = nullptr;
@@ -367,6 +374,15 @@ void ParticleThreadDraw(void* pData)
 
 	cmdBindPipeline(cmd, pPipeline);
 	DescriptorData params[3] = {};
+#if defined(VULKAN_HLSL)
+  params[0].pName = "uTex0";
+  params[0].mCount = sizeof(pImageFileNames) / sizeof(pImageFileNames[0]);
+  params[0].ppTextures = pTextures;
+  params[1].pName = "var_uniformBlock";
+  params[1].ppBuffers = &pProjViewUniformBuffer;
+  params[2].pName = "var_particleRootConstant";
+  params[2].ppBuffers = &pParticleUniformBuffer;
+#else
 	params[0].pName = "uTex0";
 	params[0].mCount = sizeof(pImageFileNames) / sizeof(pImageFileNames[0]);
 	params[0].ppTextures = pTextures;
@@ -374,6 +390,7 @@ void ParticleThreadDraw(void* pData)
 	params[1].ppBuffers = &pProjViewUniformBuffer;
 	params[2].pName = "particleRootConstant";
 	params[2].pRootConstant = &gParticleData;
+#endif
 	cmdBindDescriptors(cmd, pRootSignature, 3, params);
 
 	cmdBindVertexBuffer(cmd, 1, &pParticleVertexBuffer);
@@ -776,6 +793,27 @@ void initApp(const WindowsDesc* window)
 	ShaderDesc skyShader = { SHADER_STAGE_VERT | SHADER_STAGE_FRAG };
 
 #if defined(VULKAN)
+#if defined(VULKAN_HLSL)
+  File vertFile = {};
+  File fragFile = {};
+  vertFile.Open("Graph.hlsl.vert.spv", FileMode::FM_ReadBinary, FSR_BinShaders);
+  fragFile.Open("Graph.hlsl.frag.spv", FileMode::FM_ReadBinary, FSR_BinShaders);
+  graphShader.mVert = { vertFile.GetName(), vertFile.ReadText(), "VSMain" };
+  graphShader.mFrag = { fragFile.GetName(), fragFile.ReadText(), "PSMain" };
+
+  vertFile.Open("Skybox.hlsl.vert.spv", FileMode::FM_ReadBinary, FSR_BinShaders);
+  fragFile.Open("Skybox.hlsl.frag.spv", FileMode::FM_ReadBinary, FSR_BinShaders);
+  skyShader.mVert = { vertFile.GetName(), vertFile.ReadText(), "VSMain" };
+  skyShader.mFrag = { fragFile.GetName(), fragFile.ReadText(), "PSMain" };
+
+  vertFile.Open("Particle.hlsl.vert.spv", FileMode::FM_ReadBinary, FSR_BinShaders);
+  fragFile.Open("Particle.hlsl.frag.spv", FileMode::FM_ReadBinary, FSR_BinShaders);
+  particleShader.mVert = { vertFile.GetName(), vertFile.ReadText(), "VSMain" };
+  particleShader.mFrag = { fragFile.GetName(), fragFile.ReadText(), "PSMain" };
+
+  vertFile.Close();
+  fragFile.Close();
+ #else
 	File vertFile = {};
 	File fragFile = {};
 	vertFile.Open("Graph.vert.spv", FileMode::FM_ReadBinary, FSR_BinShaders);
@@ -795,6 +833,7 @@ void initApp(const WindowsDesc* window)
 
 	vertFile.Close();
 	fragFile.Close();
+ #endif
 #elif defined(DIRECT3D12)
 	File hlslFile = {};
 	hlslFile.Open("Graph.hlsl", FM_Read, FSRoot::FSR_SrcShaders);
@@ -994,6 +1033,10 @@ void initApp(const WindowsDesc* window)
 	addResource(&ubDesc);
 	ubDesc.ppBuffer = &pSkyboxUniformBuffer;
 	addResource(&ubDesc);
+#if defined(VULKAN_HLSL)	
+  ubDesc.ppBuffer = &pParticleUniformBuffer;
+  addResource(&ubDesc);
+#endif
 
 	finishResourceLoading ();
 	LOGINFOF ("Load Time %lld", timer.GetUSec (false) / 1000);
@@ -1242,6 +1285,11 @@ void drawFrame(float deltaTime)
 	BufferUpdateDesc skyboxViewProjCbv = { pSkyboxUniformBuffer, &gProjectView, 0, 0, sizeof(gProjectView) };
 	updateResource(&skyboxViewProjCbv);
 
+#if defined(VULKAN_HLSL)
+  BufferUpdateDesc particleCbv = { pParticleUniformBuffer, &gParticleData, 0, 0, sizeof(gParticleData) };
+  updateResource(&particleCbv);
+#endif
+
 	// update cpu data graph
 	if (cpuUpdateTimer.GetMSec(false) > 500)
 	{
@@ -1284,7 +1332,11 @@ void drawFrame(float deltaTime)
 	params[4].ppTextures = &pSkyBoxTextures[4];
 	params[5].pName = "BackText";
 	params[5].ppTextures = &pSkyBoxTextures[5];
+#if defined(VULKAN_HLSL)
+  params[6].pName = "var_uniformBlock";
+#else
 	params[6].pName = "uniformBlock";
+#endif
 	params[6].ppBuffers = &pSkyboxUniformBuffer;
 	cmdBindDescriptors(cmd, pRootSignature, 7, params);
 	cmdBindPipeline(cmd, pSkyBoxDrawPipeline);
@@ -1392,6 +1444,9 @@ void exitApp()
 
 	removeResource(pProjViewUniformBuffer);
 	removeResource(pSkyboxUniformBuffer);
+#if defined(VULKAN_HLSL)
+  removeResource(pParticleUniformBuffer);
+#endif
 	removeResource(pParticleVertexBuffer);
 	removeResource(pSkyBoxVertexBuffer);
 

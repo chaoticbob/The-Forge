@@ -32,6 +32,7 @@
 //
 //--------------------------------------------------------------------------------------------
 #include "SpirvTools.h"
+#include <cassert>
 
 #define SPIRV_CROSS_EXCEPTIONS_TO_ASSERTIONS
 
@@ -355,7 +356,11 @@ SPIRV_INTERFACE  void CALLTYPE ReflectShaderVariables(CrossCompiler* pCompiler)
 SPIRV_INTERFACE  void CALLTYPE ReflectComputeShaderWorkGroupSize(CrossCompiler* pCompiler, uint32_t* pSizeX, uint32_t* pSizeY, uint32_t* pSizeZ)
 {
 	spirv_cross::Compiler* compiler = (spirv_cross::Compiler*)pCompiler->pCompiler;
-	spirv_cross::SPIREntryPoint* pEntryPoint = &compiler->get_entry_point("main");
+  // Vulkan SPIRV modules should only have one entry point name.
+  assert(compiler->get_entry_points().size() == 1);
+  // HLSL compiled shaders may have entry point names other than 'main'.
+  std::string entryPointName = compiler->get_entry_points()[0];
+	spirv_cross::SPIREntryPoint* pEntryPoint = &compiler->get_entry_point(entryPointName);
 
 	*pSizeX = pEntryPoint->workgroup_size.x;
 	*pSizeY = pEntryPoint->workgroup_size.y;
@@ -364,8 +369,12 @@ SPIRV_INTERFACE  void CALLTYPE ReflectComputeShaderWorkGroupSize(CrossCompiler* 
 
 SPIRV_INTERFACE  void CALLTYPE ReflectHullShaderControlPoint(CrossCompiler* pCompiler, uint32_t* pSizeX)
 {
-	spirv_cross::Compiler* compiler = (spirv_cross::Compiler*)pCompiler->pCompiler;
-	spirv_cross::SPIREntryPoint* pEntryPoint = &compiler->get_entry_point("main");
+  spirv_cross::Compiler* compiler = (spirv_cross::Compiler*)pCompiler->pCompiler;
+  // Vulkan SPIRV modules should only have one entry point name.
+  assert(compiler->get_entry_points().size() == 1);
+  // HLSL compiled shaders may have entry point names other than 'main'.
+  std::string entryPointName = compiler->get_entry_points()[0];
+  spirv_cross::SPIREntryPoint* pEntryPoint = &compiler->get_entry_point(entryPointName);
 
 	*pSizeX = pEntryPoint->output_vertices;
 }

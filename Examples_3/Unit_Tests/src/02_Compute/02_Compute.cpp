@@ -24,6 +24,10 @@
 
 #define _USE_MATH_DEFINES
 
+#if defined(VULKAN)
+#define VULKAN_HLSL
+#endif
+
 // Unit Test for testing Compute Shaders
 // using Julia 4D demonstration
 
@@ -404,6 +408,20 @@ void initApp(const WindowsDesc* window)
 	computeShader.mComp = { hlslFile.GetName(), hlslFile.ReadText(), "CSMain" };
 	hlslFile.Close();
 #elif defined(VULKAN)
+ #if defined(VULKAN_HLSL)
+  File vertFile = {};
+  File fragFile = {};
+  File computeFile = {};
+  vertFile.Open("display.hlsl.vert.spv", FM_ReadBinary, FSRoot::FSR_BinShaders);
+  displayShader.mVert = { vertFile.GetName(), vertFile.ReadText(), "VSMain" };
+  fragFile.Open("display.hlsl.frag.spv", FM_ReadBinary, FSRoot::FSR_BinShaders);
+  displayShader.mFrag = { fragFile.GetName(), fragFile.ReadText(), "PSMain" };
+  computeFile.Open("compute.hlsl.comp.spv", FM_ReadBinary, FSRoot::FSR_BinShaders);
+  computeShader.mComp = { computeFile.GetName(), computeFile.ReadText(), "CSMain" };
+  vertFile.Close();
+  fragFile.Close();
+  computeFile.Close();
+ #else
 	File vertFile = {};
 	File fragFile = {};
 	File computeFile = {};
@@ -416,6 +434,7 @@ void initApp(const WindowsDesc* window)
 	vertFile.Close();
 	fragFile.Close();
 	computeFile.Close();
+ #endif
 #elif defined(METAL)
     
     FSRoot shaderRoot = FSRoot::FSR_SrcShaders;
@@ -635,7 +654,11 @@ void drawFrame(float deltaTime)
     cmdBindPipeline(cmd, pComputePipeline);
     
 	DescriptorData params[2] = {};
-	params[0].pName = "uniformBlock";
+#if defined(VULKAN_HLSL)
+	params[0].pName = "var_uniformBlock";
+#else
+  params[0].pName = "uniformBlock";
+#endif
 	params[0].ppBuffers = &pUniformBuffer;
 	params[1].pName = "outputTexture";
 	params[1].ppTextures = &pTextureComputeOutput;
