@@ -41,7 +41,27 @@
 // TODO : Add Confetti copyright statement here, as well as note that intel code is modified
 
 #if defined(VULKAN)
-#define VULKAN_HLSL
+  //#define VULKAN_HLSL
+#endif
+
+#if defined(VULKAN_HLSL)
+  #define ADD_UBO_PREFIX(NAME) "var_"##NAME
+  #define BASIC_VERT_MAIN             "VSMain"
+  #define BASIC_FRAG_MAIN             "PSMain"
+  #define SKYBOX_VERT_MAIN            "VSMain"
+  #define SKYBOX_FRAG_MAIN            "PSMain"
+  #define EXECUTE_INDIRECT_VERT_MAIN  "VSMain"
+  #define EXECUTE_INDIRECT_FRAG_MAIN  "PSMain"
+  #define COMPUTE_UPDATE_COMP_MAIN    "CSMain"
+#else
+  #define ADD_UBO_PREFIX
+  #define BASIC_VERT_MAIN             "main"
+  #define BASIC_FRAG_MAIN             "main"
+  #define SKYBOX_VERT_MAIN            "main"
+  #define SKYBOX_FRAG_MAIN            "main"
+  #define EXECUTE_INDIRECT_VERT_MAIN  "main"
+  #define EXECUTE_INDIRECT_FRAG_MAIN  "main"
+  #define COMPUTE_UPDATE_COMP_MAIN    "main"
 #endif
 
 // Unit test headers
@@ -113,7 +133,11 @@ const char* pszRoots[] =
 //Example for using roots or will cause linker error with the extern root in FileSystem.cpp
 const char* pszRoots[] =
 {
+#if defined(VULKAN_HLSL)
+    "../../../src/04_ExecuteIndirect/" RESOURCE_DIR "/Binary/HLSL/",	// FSR_BinShaders
+#else
     "../../../src/04_ExecuteIndirect/" RESOURCE_DIR "/Binary/",	// FSR_BinShaders
+#endif
     "../../../src/04_ExecuteIndirect/" RESOURCE_DIR "/",		// FSR_SrcShaders
     "",															// FSR_BinShaders_Common
     "",															// FSR_SrcShaders_Common
@@ -858,57 +882,30 @@ void initApp(const WindowsDesc* window)
 
 	hlslFile.Close();
 #elif defined(VULKAN)
- #if defined(VULKAN_HLSL)
   File vertFile = {};
-	File fragFile = {};
-	File computeFile = {};
-	vertFile.Open("basic.hlsl.vert.spv", FileMode::FM_ReadBinary, FSR_BinShaders);
-	fragFile.Open("basic.hlsl.frag.spv", FileMode::FM_ReadBinary, FSR_BinShaders);
-	instanceShader.mVert = { vertFile.GetName(), vertFile.ReadText(), "VSMain" };
-	instanceShader.mFrag = { fragFile.GetName(), fragFile.ReadText(), "PSMain" };
-
-  vertFile.Open("skybox.hlsl.vert.spv", FileMode::FM_ReadBinary, FSR_BinShaders);
-  fragFile.Open("skybox.hlsl.frag.spv", FileMode::FM_ReadBinary, FSR_BinShaders);
-	skyShader.mVert = { vertFile.GetName(), vertFile.ReadText(), "VSMain" };
-	skyShader.mFrag = { fragFile.GetName(), fragFile.ReadText(), "PSMain" };
-
-	vertFile.Open("ExecuteIndirect.hlsl.vert.spv", FileMode::FM_ReadBinary, FSR_BinShaders);
-	fragFile.Open("ExecuteIndirect.hlsl.frag.spv", FileMode::FM_ReadBinary, FSR_BinShaders);
-	indirectShader.mVert = { vertFile.GetName(), vertFile.ReadText(), "VSMain" };
-	indirectShader.mFrag = { fragFile.GetName(), fragFile.ReadText(), "PSMain" };
-
-  computeFile.Open("ComputeUpdate.hlsl.comp.spv", FileMode::FM_ReadBinary, FSR_BinShaders);
-	gpuUpdateShader.mComp = { computeFile.GetName(), computeFile.ReadText(), "CSMain" };
-
-	vertFile.Close();
-	fragFile.Close();
-	computeFile.Close();
- #else
-    File vertFile = {};
 	File fragFile = {};
 	File computeFile = {};
 	vertFile.Open("basic.vert.spv", FileMode::FM_ReadBinary, FSR_BinShaders);
 	fragFile.Open("basic.frag.spv", FileMode::FM_ReadBinary, FSR_BinShaders);
-	instanceShader.mVert = { vertFile.GetName(), vertFile.ReadText(), "main" };
-	instanceShader.mFrag = { fragFile.GetName(), fragFile.ReadText(), "main" };
+	instanceShader.mVert = { vertFile.GetName(), vertFile.ReadText(), BASIC_VERT_MAIN };
+	instanceShader.mFrag = { fragFile.GetName(), fragFile.ReadText(), BASIC_FRAG_MAIN };
 
-    vertFile.Open("skybox.vert.spv", FileMode::FM_ReadBinary, FSR_BinShaders);
-    fragFile.Open("skybox.frag.spv", FileMode::FM_ReadBinary, FSR_BinShaders);
-	skyShader.mVert = { vertFile.GetName(), vertFile.ReadText(), "main" };
-	skyShader.mFrag = { fragFile.GetName(), fragFile.ReadText(), "main" };
+  vertFile.Open("skybox.vert.spv", FileMode::FM_ReadBinary, FSR_BinShaders);
+  fragFile.Open("skybox.frag.spv", FileMode::FM_ReadBinary, FSR_BinShaders);
+	skyShader.mVert = { vertFile.GetName(), vertFile.ReadText(), SKYBOX_VERT_MAIN };
+	skyShader.mFrag = { fragFile.GetName(), fragFile.ReadText(), SKYBOX_FRAG_MAIN };
 
 	vertFile.Open("ExecuteIndirect.vert.spv", FileMode::FM_ReadBinary, FSR_BinShaders);
 	fragFile.Open("ExecuteIndirect.frag.spv", FileMode::FM_ReadBinary, FSR_BinShaders);
-	indirectShader.mVert = { vertFile.GetName(), vertFile.ReadText(), "main" };
-	indirectShader.mFrag = { fragFile.GetName(), fragFile.ReadText(), "main" };
+	indirectShader.mVert = { vertFile.GetName(), vertFile.ReadText(), EXECUTE_INDIRECT_VERT_MAIN };
+	indirectShader.mFrag = { fragFile.GetName(), fragFile.ReadText(), EXECUTE_INDIRECT_FRAG_MAIN };
 
-    computeFile.Open("ComputeUpdate.comp.spv", FileMode::FM_ReadBinary, FSR_BinShaders);
-	gpuUpdateShader.mComp = { computeFile.GetName(), computeFile.ReadText(), "main" };
+  computeFile.Open("ComputeUpdate.comp.spv", FileMode::FM_ReadBinary, FSR_BinShaders);
+	gpuUpdateShader.mComp = { computeFile.GetName(), computeFile.ReadText(), COMPUTE_UPDATE_COMP_MAIN };
 
 	vertFile.Close();
 	fragFile.Close();
 	computeFile.Close();
- #endif
 #elif defined(METAL)
     
     FSRoot shaderRoot = FSRoot::FSR_SrcShaders;
@@ -1285,11 +1282,7 @@ void RenderSubset(unsigned index, const mat4& viewProj, uint32_t frameIdx, Rende
         cmdSetScissor(cmd, 0, 0, pRenderTarget->mDesc.mWidth, pRenderTarget->mDesc.mHeight);
 
 		DescriptorData params[3];
-#if defined(VULKAN_HLSL)
-    params[0].pName = "var_instanceBuffer";
-#else
-		params[0].pName = "instanceBuffer";
-#endif
+		params[0].pName = ADD_UBO_PREFIX("instanceBuffer");
 		params[0].ppBuffers = &gAsteroidSubsets[index].pAsteroidInstanceBuffer;
 		params[1].pName = "uTex0";
 		params[1].ppTextures = &pAsteroidTex;
@@ -1367,11 +1360,7 @@ void RenderSubset(unsigned index, const mat4& viewProj, uint32_t frameIdx, Rende
         cmdSetScissor(cmd, 0, 0, pRenderTarget->mDesc.mWidth, pRenderTarget->mDesc.mHeight);
 
 		DescriptorData indirectParams[5];
-#if defined(VULKAN_HLSL)
-    indirectParams[0].pName = "var_uniformBlock";
-#else
-		indirectParams[0].pName = "uniformBlock";
-#endif
+		indirectParams[0].pName = ADD_UBO_PREFIX("uniformBlock");
 		indirectParams[0].ppBuffers = &pIndirectUniformBuffer;
 		indirectParams[1].pName = "asteroidsStatic";
 		indirectParams[1].ppBuffers = &pStaticAsteroidBuffer;
@@ -1460,11 +1449,7 @@ void drawFrame(float deltaTime)
     cmdSetScissor(cmd, 0, 0, pRenderTarget->mDesc.mWidth, pRenderTarget->mDesc.mHeight);
 
 	DescriptorData skyboxParams[8] = {};
-#if defined(VULKAN_HLSL)
-  skyboxParams[0].pName = "var_uniformBlock";
-#else
-	skyboxParams[0].pName = "uniformBlock";
-#endif
+	skyboxParams[0].pName = ADD_UBO_PREFIX("uniformBlock");
 	skyboxParams[0].ppBuffers = &pSkyboxUniformBuffer;
 	skyboxParams[1].pName = "RightText";
 	skyboxParams[1].ppTextures = &pSkyBoxTextures[0];
@@ -1557,11 +1542,7 @@ void drawFrame(float deltaTime)
 
         // Update dynamic asteroid positions using compute shader
 		DescriptorData computeParams[4] = {};
-#if defined(VULKAN_HLSL)
-    computeParams[0].pName = "var_uniformBlock";
-#else
-		computeParams[0].pName = "uniformBlock";
-#endif
+		computeParams[0].pName = ADD_UBO_PREFIX("uniformBlock");
 		computeParams[0].ppBuffers = &pComputeUniformBuffer[frameIdx];
 		computeParams[1].pName = "asteroidsStatic";
 		computeParams[1].ppBuffers = &pStaticAsteroidBuffer;
@@ -1582,11 +1563,7 @@ void drawFrame(float deltaTime)
         cmdSetScissor(cmd, 0, 0, pRenderTarget->mDesc.mWidth, pRenderTarget->mDesc.mHeight);
 
 		DescriptorData indirectParams[5];
-#if defined(VULKAN_HLSL)
-    indirectParams[0].pName = "var_uniformBlock";
-#else
-		indirectParams[0].pName = "uniformBlock";
-#endif
+		indirectParams[0].pName = ADD_UBO_PREFIX("uniformBlock");
 		indirectParams[0].ppBuffers = &pIndirectUniformBuffer;
 		indirectParams[1].pName = "asteroidsStatic";
 		indirectParams[1].ppBuffers = &pStaticAsteroidBuffer;
