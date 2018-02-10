@@ -23,7 +23,21 @@
 */
 
 #if defined(VULKAN)
-#define VULKAN_HLSL
+  #define VULKAN_HLSL
+#endif
+
+#if defined(VULKAN_HLSL)
+  #define ADD_UBO_PREFIX(NAME) "var_"##NAME
+  #define PROCEDURAL_PLANET_VERT_MAIN   "VSMain"
+  #define PROCEDURAL_PLANET_FRAG_MAIN   "PSMain"
+  #define BACKGROUND_VERT_MAIN          "VSBGMain"
+  #define BACKGROUND_FRAG_MAIN          "PSBGMain"
+#else
+  #define ADD_UBO_PREFIX
+  #define PROCEDURAL_PLANET_VERT_MAIN   "main"
+  #define PROCEDURAL_PLANET_FRAG_MAIN   "main"
+  #define BACKGROUND_VERT_MAIN          "main"
+  #define BACKGROUND_FRAG_MAIN          "main"
 #endif
 
 //tiny stl
@@ -67,7 +81,11 @@
 //Example for using roots or will cause linker error with the extern root in FileSystem.cpp
 const char* pszRoots[] =
 {
+#if defined(VULKAN_HLSL)
+	"../../../src/08_Procedural/" RESOURCE_DIR "/Binary/HLSL/",	// FSR_BinShaders
+#else
 	"../../../src/08_Procedural/" RESOURCE_DIR "/Binary/",	// FSR_BinShaders
+#endif
 	"../../../src/08_Procedural/" RESOURCE_DIR "/",			// FSR_SrcShaders
 	"",														// FSR_BinShaders_Common
 	"",														// FSR_SrcShaders_Common
@@ -466,33 +484,6 @@ void initApp(const WindowsDesc* pWindow)
 	hlslFile.Close();
 
 #elif defined(VULKAN)
- #if defined(VULKAN_HLSL)
-	// prepare vulkan shaders
-	File vertFile = {};
-	File fragFile = {};
-
-	vertFile.Open("proceduralPlanet.hlsl.vert.spv", FM_ReadBinary, FSRoot::FSR_BinShaders);
-	fragFile.Open("proceduralPlanet.hlsl.frag.spv", FM_ReadBinary, FSRoot::FSR_BinShaders);
-
-	brdfRenderSceneShaderDesc.mVert = { vertFile.GetName(), vertFile.ReadText(), "VSMain" };	
-	brdfRenderSceneShaderDesc.mFrag = { fragFile.GetName(), fragFile.ReadText(), "PSMain" };
-
-	vertFile.Close();
-	fragFile.Close();
-
-
-	File vertBGFile = {};
-	File fragBGFile = {};
-
-	vertBGFile.Open("backGround.hlsl.vert.spv", FM_ReadBinary, FSRoot::FSR_BinShaders);	
-	fragBGFile.Open("backGround.hlsl.frag.spv", FM_ReadBinary, FSRoot::FSR_BinShaders);
-
-	bgRenderSceneShaderDesc.mVert = { vertBGFile.GetName(), vertBGFile.ReadText(), "VSBGMain" };
-	bgRenderSceneShaderDesc.mFrag = { fragBGFile.GetName(), fragBGFile.ReadText(), "PSBGMain" };
-
-	vertBGFile.Close();
-	fragBGFile.Close();
- #else
 	// prepare vulkan shaders
 	File vertFile = {};
 	File fragFile = {};
@@ -500,8 +491,8 @@ void initApp(const WindowsDesc* pWindow)
 	vertFile.Open("proceduralPlanet.vert.spv", FM_ReadBinary, FSRoot::FSR_BinShaders);
 	fragFile.Open("proceduralPlanet.frag.spv", FM_ReadBinary, FSRoot::FSR_BinShaders);
 
-	brdfRenderSceneShaderDesc.mVert = { vertFile.GetName(), vertFile.ReadText(), "main" };	
-	brdfRenderSceneShaderDesc.mFrag = { fragFile.GetName(), fragFile.ReadText(), "main" };
+	brdfRenderSceneShaderDesc.mVert = { vertFile.GetName(), vertFile.ReadText(), PROCEDURAL_PLANET_VERT_MAIN };	
+	brdfRenderSceneShaderDesc.mFrag = { fragFile.GetName(), fragFile.ReadText(), PROCEDURAL_PLANET_FRAG_MAIN };
 
 	vertFile.Close();
 	fragFile.Close();
@@ -513,12 +504,11 @@ void initApp(const WindowsDesc* pWindow)
 	vertBGFile.Open("backGround.vert.spv", FM_ReadBinary, FSRoot::FSR_BinShaders);	
 	fragBGFile.Open("backGround.frag.spv", FM_ReadBinary, FSRoot::FSR_BinShaders);
 
-	bgRenderSceneShaderDesc.mVert = { vertBGFile.GetName(), vertBGFile.ReadText(), "main" };
-	bgRenderSceneShaderDesc.mFrag = { fragBGFile.GetName(), fragBGFile.ReadText(), "main" };
+	bgRenderSceneShaderDesc.mVert = { vertBGFile.GetName(), vertBGFile.ReadText(), BACKGROUND_VERT_MAIN };
+	bgRenderSceneShaderDesc.mFrag = { fragBGFile.GetName(), fragBGFile.ReadText(), BACKGROUND_FRAG_MAIN };
 
 	vertBGFile.Close();
 	fragBGFile.Close();
- #endif
 #elif defined(METAL)
     
     FSRoot shaderRoot = FSRoot::FSR_SrcShaders;
@@ -874,17 +864,10 @@ void drawFrame(float deltaTime)
 	cmdBindPipeline(cmd, pPipelineBG);
 	
 	DescriptorData paramsBG[2] = {};
-#if defined(VULKAN_HLSL)
-  paramsBG[0].pName = "var_cbObject";
-  paramsBG[0].ppBuffers = &gSphereBuffers[gFrameIndex][0];
-  paramsBG[1].pName = "var_cbScreen";
-  paramsBG[1].ppBuffers = &pScreenSizeBuffer;
-#else
-	paramsBG[0].pName = "cbObject";
+	paramsBG[0].pName = ADD_UBO_PREFIX("cbObject");
 	paramsBG[0].ppBuffers = &gSphereBuffers[gFrameIndex][0];
-	paramsBG[1].pName = "cbScreen";
+	paramsBG[1].pName = ADD_UBO_PREFIX("cbScreen");
 	paramsBG[1].ppBuffers = &pScreenSizeBuffer;
-#endif
 
 	cmdBindDescriptors(cmd, pRootSigBG, 2, paramsBG);
 	cmdBindVertexBuffer(cmd, 1, &pBGVertexBuffer);
@@ -904,25 +887,14 @@ void drawFrame(float deltaTime)
 
     // These params stays the same, we alternate our next param
     DescriptorData params[5] = {};
-#if defined(VULKAN_HLSL)
-    params[0].pName = "var_cbCamera";
-    params[0].ppBuffers = &pBufferUniformCamera[gFrameIndex];
-
-    params[1].pName = "var_cbObject";
-    params[1].ppBuffers = &gSphereBuffers[gFrameIndex][0];
-
-    params[2].pName = "var_cbLights";
-    params[2].ppBuffers = &pBufferUniformLights[gFrameIndex];
-#else
-    params[0].pName = "cbCamera";
+    params[0].pName = ADD_UBO_PREFIX("cbCamera");
     params[0].ppBuffers = &pBufferUniformCamera[gFrameIndex];
 	
-    params[1].pName = "cbObject";
+    params[1].pName = ADD_UBO_PREFIX("cbObject");
     params[1].ppBuffers = &gSphereBuffers[gFrameIndex][0];
 
-    params[2].pName = "cbLights";
+    params[2].pName = ADD_UBO_PREFIX("cbLights");
     params[2].ppBuffers = &pBufferUniformLights[gFrameIndex];
-#endif
 
 	params[3].pName = "uEnvTex0";
 	params[3].ppTextures = &pEnvTex;

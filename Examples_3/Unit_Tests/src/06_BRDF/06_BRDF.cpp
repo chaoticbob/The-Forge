@@ -26,7 +26,17 @@
 // Tests the basic mat4 transformations, such as scaling, rotation, and translation.
 
 #if defined(VULKAN)
-#define VULKAN_HLSL
+  #define VULKAN_HLSL
+#endif
+
+#if defined(VULKAN_HLSL)
+  #define ADD_UBO_PREFIX(NAME) "var_"##NAME
+  #define RENDER_SCENE_BRDF_VERT_MAIN "VSMain"
+  #define RENDER_SCENE_BRDF_FRAG_MAIN "PSMain"
+#else
+  #define ADD_UBO_PREFIX
+  #define RENDER_SCENE_BRDF_VERT_MAIN "main"
+  #define RENDER_SCENE_BRDF_FRAG_MAIN "main"
 #endif
 
 //tiny stl
@@ -69,7 +79,11 @@
 //Example for using roots or will cause linker error with the extern root in FileSystem.cpp
 const char* pszRoots[] =
 {
+#if defined(VULKAN_HLSL)
+	"../../../src/06_BRDF/" RESOURCE_DIR "/Binary/HLSL/",	// FSR_BinShaders
+#else
 	"../../../src/06_BRDF/" RESOURCE_DIR "/Binary/",	// FSR_BinShaders
+#endif
 	"../../../src/06_BRDF/" RESOURCE_DIR "/",			// FSR_SrcShaders
 	"",													// FSR_BinShaders_Common
 	"",													// FSR_SrcShaders_Common
@@ -393,30 +407,17 @@ void initApp(const WindowsDesc* pWindow)
 	brdfRenderSceneShaderDesc = { brdfRenderSceneShaderDesc.mStages, {hlslFile.GetName(), hlsl, "VSMain"}, {hlslFile.GetName(), hlsl, "PSMain"} };
 
 #elif defined(VULKAN)
- #if defined(VULKAN_HLSL)
-	// prepare vulkan shaders
-	File vertFile = {};
-	File fragFile = {};
-
-	vertFile.Open("renderSceneBRDF.hlsl.vert.spv", FM_ReadBinary, FSRoot::FSR_BinShaders);
-	brdfRenderSceneShaderDesc.mVert = { vertFile.GetName(), vertFile.ReadText(), "VSMain" };
-	fragFile.Open("renderSceneBRDF.hlsl.frag.spv", FM_ReadBinary, FSRoot::FSR_BinShaders);
-	brdfRenderSceneShaderDesc.mFrag = { fragFile.GetName(), fragFile.ReadText(), "PSMain" };
-
-	vertFile.Close();
- #else
 	// prepare vulkan shaders
 	File vertFile = {};
 	File fragFile = {};
 
 	vertFile.Open("renderSceneBRDF.vert.spv", FM_ReadBinary, FSRoot::FSR_BinShaders);
-	brdfRenderSceneShaderDesc.mVert = { vertFile.GetName(), vertFile.ReadText(), "main" };
+	brdfRenderSceneShaderDesc.mVert = { vertFile.GetName(), vertFile.ReadText(), RENDER_SCENE_BRDF_VERT_MAIN };
 	fragFile.Open("renderSceneBRDF.frag.spv", FM_ReadBinary, FSRoot::FSR_BinShaders);
-	brdfRenderSceneShaderDesc.mFrag = { fragFile.GetName(), fragFile.ReadText(), "main" };
+	brdfRenderSceneShaderDesc.mFrag = { fragFile.GetName(), fragFile.ReadText(), RENDER_SCENE_BRDF_FRAG_MAIN };
 
 	vertFile.Close();
 	fragFile.Close();
- #endif
 #elif defined(METAL)
     
     FSRoot shaderRoot = FSRoot::FSR_SrcShaders;
@@ -670,26 +671,15 @@ void drawFrame(float deltaTime)
     
     // These params stays the same, we alternate our next param
     DescriptorData params[3] = {};
-#if defined(VULKAN_HLSL)
-    params[0].pName = "var_cbCamera";
+    params[0].pName = ADD_UBO_PREFIX("cbCamera");
     params[0].ppBuffers = &pBufferUniformCamera;
-    params[2].pName = "var_cbLights";
+    params[2].pName = ADD_UBO_PREFIX("cbLights");
     params[2].ppBuffers = &pBufferUniformLights;
-#else
-    params[0].pName = "cbCamera";
-    params[0].ppBuffers = &pBufferUniformCamera;
-    params[2].pName = "cbLights";
-    params[2].ppBuffers = &pBufferUniformLights;
-#endif
     
     for (int i = 0; i < sphereBuffers.size(); ++i)
     {
         // Add the uniform buffer for every sphere
-#if defined(VULKAN_HLSL)
-        params[1].pName = "var_cbObject";
-#else
-        params[1].pName = "cbObject";
-#endif
+        params[1].pName = ADD_UBO_PREFIX("cbObject");
         params[1].ppBuffers = &sphereBuffers[i];
         
         cmdBindDescriptors(cmd, pRootSigBRDF, 3, params);

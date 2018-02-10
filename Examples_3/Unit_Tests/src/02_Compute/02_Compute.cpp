@@ -25,7 +25,19 @@
 #define _USE_MATH_DEFINES
 
 #if defined(VULKAN)
-#define VULKAN_HLSL
+  #define VULKAN_HLSL
+#endif
+
+#if defined(VULKAN_HLSL)
+  #define ADD_UBO_PREFIX(NAME) "var_"##NAME
+  #define DISPLAY_VERT_MAIN   "VSMain"
+  #define DISPLAY_FRAG_MAIN   "PSMain"
+  #define COMPUTE_COMP_MAIN   "CSMain"
+#else
+  #define ADD_UBO_PREFIX
+  #define DISPLAY_VERT_MAIN   "main"
+  #define DISPLAY_FRAG_MAIN   "main"
+  #define COMPUTE_COMP_MAIN   "main"
 #endif
 
 // Unit Test for testing Compute Shaders
@@ -133,7 +145,11 @@ const char* pszRoots[] =
 //Example for using roots or will cause linker error with the extern root in FileSystem.cpp
 const char* pszRoots[] =
 {
+#if defined(VULKAN_HLSL)
+	"../../../src/02_Compute/" RESOURCE_DIR "/Binary/HLSL/",	// FSR_BinShaders
+#else
 	"../../../src/02_Compute/" RESOURCE_DIR "/Binary/",	// FSR_BinShaders
+#endif
 	"../../../src/02_Compute/" RESOURCE_DIR "/",		// FSR_SrcShaders
 	"",													// FSR_BinShaders_Common
 	"",													// FSR_SrcShaders_Common
@@ -408,33 +424,18 @@ void initApp(const WindowsDesc* window)
 	computeShader.mComp = { hlslFile.GetName(), hlslFile.ReadText(), "CSMain" };
 	hlslFile.Close();
 #elif defined(VULKAN)
- #if defined(VULKAN_HLSL)
-  File vertFile = {};
-  File fragFile = {};
-  File computeFile = {};
-  vertFile.Open("display.hlsl.vert.spv", FM_ReadBinary, FSRoot::FSR_BinShaders);
-  displayShader.mVert = { vertFile.GetName(), vertFile.ReadText(), "VSMain" };
-  fragFile.Open("display.hlsl.frag.spv", FM_ReadBinary, FSRoot::FSR_BinShaders);
-  displayShader.mFrag = { fragFile.GetName(), fragFile.ReadText(), "PSMain" };
-  computeFile.Open("compute.hlsl.comp.spv", FM_ReadBinary, FSRoot::FSR_BinShaders);
-  computeShader.mComp = { computeFile.GetName(), computeFile.ReadText(), "CSMain" };
-  vertFile.Close();
-  fragFile.Close();
-  computeFile.Close();
- #else
 	File vertFile = {};
 	File fragFile = {};
 	File computeFile = {};
 	vertFile.Open("display.vert.spv", FM_ReadBinary, FSRoot::FSR_BinShaders);
-	displayShader.mVert = { vertFile.GetName(), vertFile.ReadText(), "main" };
+	displayShader.mVert = { vertFile.GetName(), vertFile.ReadText(), DISPLAY_VERT_MAIN };
 	fragFile.Open("display.frag.spv", FM_ReadBinary, FSRoot::FSR_BinShaders);
-	displayShader.mFrag = { fragFile.GetName(), fragFile.ReadText(), "main" };
+	displayShader.mFrag = { fragFile.GetName(), fragFile.ReadText(), DISPLAY_FRAG_MAIN };
 	computeFile.Open("compute.comp.spv", FM_ReadBinary, FSRoot::FSR_BinShaders);
-	computeShader.mComp = { computeFile.GetName(), computeFile.ReadText(), "main" };
+	computeShader.mComp = { computeFile.GetName(), computeFile.ReadText(), COMPUTE_COMP_MAIN };
 	vertFile.Close();
 	fragFile.Close();
 	computeFile.Close();
- #endif
 #elif defined(METAL)
     
     FSRoot shaderRoot = FSRoot::FSR_SrcShaders;
@@ -654,11 +655,7 @@ void drawFrame(float deltaTime)
     cmdBindPipeline(cmd, pComputePipeline);
     
 	DescriptorData params[2] = {};
-#if defined(VULKAN_HLSL)
-	params[0].pName = "var_uniformBlock";
-#else
-  params[0].pName = "uniformBlock";
-#endif
+  params[0].pName = ADD_UBO_PREFIX("uniformBlock");
 	params[0].ppBuffers = &pUniformBuffer;
 	params[1].pName = "outputTexture";
 	params[1].ppTextures = &pTextureComputeOutput;

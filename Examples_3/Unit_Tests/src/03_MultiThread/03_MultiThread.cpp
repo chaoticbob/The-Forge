@@ -25,8 +25,27 @@
 #define _USE_MATH_DEFINES
 
 #if defined(VULKAN)
-#define VULKAN_HLSL
+  #define VULKAN_HLSL
 #endif
+
+#if defined(VULKAN_HLSL)
+  #define ADD_UBO_PREFIX(NAME) "var_"##NAME
+  #define GRAPH_VERT_MAIN     "VSMain"
+  #define GRAPH_FRAG_MAIN     "PSMain"
+  #define PARTICLE_VERT_MAIN  "VSMain"
+  #define PARTICLE_FRAG_MAIN  "PSMain"
+  #define SKYBOX_VERT_MAIN    "VSMain"
+  #define SKYBOX_FRAG_MAIN    "PSMain"
+#else
+  #define ADD_UBO_PREFIX
+  #define GRAPH_VERT_MAIN     "main"
+  #define GRAPH_FRAG_MAIN     "main"
+  #define PARTICLE_VERT_MAIN  "main"
+  #define PARTICLE_FRAG_MAIN  "main"
+  #define SKYBOX_VERT_MAIN    "main"
+  #define SKYBOX_FRAG_MAIN    "main"
+#endif
+
 
 //tiny stl
 #include "../../Common_3/ThirdParty/OpenSource/TinySTL/vector.h"
@@ -113,7 +132,11 @@ Timer cpuUpdateTimer;
 //Example for using roots or will cause linker error with the extern root in FileSystem.cpp
 const char* pszRoots[] =
 {
+#if defined(VULKAN_HLSL)
+	"../../..//src/03_MultiThread/" RESOURCE_DIR "/Binary/HLSL/",	// FSR_BinShaders
+#else
 	"../../..//src/03_MultiThread/" RESOURCE_DIR "/Binary/",	// FSR_BinShaders
+#endif
 	"../../..//src/03_MultiThread/" RESOURCE_DIR "/",			// FSR_SrcShaders
 	"",															// FSR_BinShaders_Common
 	"",															// FSR_SrcShaders_Common
@@ -163,9 +186,6 @@ Shader*          pGraphShader = nullptr;
 Buffer*          pParticleVertexBuffer = nullptr;
 Buffer*          pProjViewUniformBuffer = nullptr;
 Buffer*          pSkyboxUniformBuffer = nullptr;
-#if defined(VULKAN_HLSL)
-Buffer*          pParticleUniformBuffer = nullptr;
-#endif
 Buffer*          pSkyBoxVertexBuffer = nullptr;
 Buffer*          pBackGroundVertexBuffer[gImageCount] = { nullptr };
 Pipeline*        pPipeline = nullptr;
@@ -374,23 +394,13 @@ void ParticleThreadDraw(void* pData)
 
 	cmdBindPipeline(cmd, pPipeline);
 	DescriptorData params[3] = {};
-#if defined(VULKAN_HLSL)
-  params[0].pName = "uTex0";
-  params[0].mCount = sizeof(pImageFileNames) / sizeof(pImageFileNames[0]);
-  params[0].ppTextures = pTextures;
-  params[1].pName = "var_uniformBlock";
-  params[1].ppBuffers = &pProjViewUniformBuffer;
-  params[2].pName = "var_particleRootConstant";
-  params[2].ppBuffers = &pParticleUniformBuffer;
-#else
 	params[0].pName = "uTex0";
 	params[0].mCount = sizeof(pImageFileNames) / sizeof(pImageFileNames[0]);
 	params[0].ppTextures = pTextures;
-	params[1].pName = "uniformBlock";
+	params[1].pName = ADD_UBO_PREFIX("uniformBlock");
 	params[1].ppBuffers = &pProjViewUniformBuffer;
 	params[2].pName = "particleRootConstant";
 	params[2].pRootConstant = &gParticleData;
-#endif
 	cmdBindDescriptors(cmd, pRootSignature, 3, params);
 
 	cmdBindVertexBuffer(cmd, 1, &pParticleVertexBuffer);
@@ -793,47 +803,25 @@ void initApp(const WindowsDesc* window)
 	ShaderDesc skyShader = { SHADER_STAGE_VERT | SHADER_STAGE_FRAG };
 
 #if defined(VULKAN)
-#if defined(VULKAN_HLSL)
-  File vertFile = {};
-  File fragFile = {};
-  vertFile.Open("Graph.hlsl.vert.spv", FileMode::FM_ReadBinary, FSR_BinShaders);
-  fragFile.Open("Graph.hlsl.frag.spv", FileMode::FM_ReadBinary, FSR_BinShaders);
-  graphShader.mVert = { vertFile.GetName(), vertFile.ReadText(), "VSMain" };
-  graphShader.mFrag = { fragFile.GetName(), fragFile.ReadText(), "PSMain" };
-
-  vertFile.Open("Skybox.hlsl.vert.spv", FileMode::FM_ReadBinary, FSR_BinShaders);
-  fragFile.Open("Skybox.hlsl.frag.spv", FileMode::FM_ReadBinary, FSR_BinShaders);
-  skyShader.mVert = { vertFile.GetName(), vertFile.ReadText(), "VSMain" };
-  skyShader.mFrag = { fragFile.GetName(), fragFile.ReadText(), "PSMain" };
-
-  vertFile.Open("Particle.hlsl.vert.spv", FileMode::FM_ReadBinary, FSR_BinShaders);
-  fragFile.Open("Particle.hlsl.frag.spv", FileMode::FM_ReadBinary, FSR_BinShaders);
-  particleShader.mVert = { vertFile.GetName(), vertFile.ReadText(), "VSMain" };
-  particleShader.mFrag = { fragFile.GetName(), fragFile.ReadText(), "PSMain" };
-
-  vertFile.Close();
-  fragFile.Close();
- #else
 	File vertFile = {};
 	File fragFile = {};
 	vertFile.Open("Graph.vert.spv", FileMode::FM_ReadBinary, FSR_BinShaders);
 	fragFile.Open("Graph.frag.spv", FileMode::FM_ReadBinary, FSR_BinShaders);
-	graphShader.mVert = { vertFile.GetName(), vertFile.ReadText(), "main" };
-	graphShader.mFrag = { fragFile.GetName(), fragFile.ReadText(), "main" };
+	graphShader.mVert = { vertFile.GetName(), vertFile.ReadText(), GRAPH_VERT_MAIN };
+	graphShader.mFrag = { fragFile.GetName(), fragFile.ReadText(), GRAPH_FRAG_MAIN };
 
 	vertFile.Open("Skybox.vert.spv", FileMode::FM_ReadBinary, FSR_BinShaders);
 	fragFile.Open("Skybox.frag.spv", FileMode::FM_ReadBinary, FSR_BinShaders);
-	skyShader.mVert = { vertFile.GetName(), vertFile.ReadText(), "main" };
-	skyShader.mFrag = { fragFile.GetName(), fragFile.ReadText(), "main" };
+	skyShader.mVert = { vertFile.GetName(), vertFile.ReadText(), SKYBOX_VERT_MAIN };
+	skyShader.mFrag = { fragFile.GetName(), fragFile.ReadText(), SKYBOX_FRAG_MAIN };
 
 	vertFile.Open("Particle.vert.spv", FileMode::FM_ReadBinary, FSR_BinShaders);
 	fragFile.Open("Particle.frag.spv", FileMode::FM_ReadBinary, FSR_BinShaders);
-	particleShader.mVert = { vertFile.GetName(), vertFile.ReadText(), "main" };
-	particleShader.mFrag = { fragFile.GetName(), fragFile.ReadText(), "main" };
+	particleShader.mVert = { vertFile.GetName(), vertFile.ReadText(), PARTICLE_VERT_MAIN };
+	particleShader.mFrag = { fragFile.GetName(), fragFile.ReadText(), PARTICLE_FRAG_MAIN };
 
 	vertFile.Close();
 	fragFile.Close();
- #endif
 #elif defined(DIRECT3D12)
 	File hlslFile = {};
 	hlslFile.Open("Graph.hlsl", FM_Read, FSRoot::FSR_SrcShaders);
@@ -1033,10 +1021,6 @@ void initApp(const WindowsDesc* window)
 	addResource(&ubDesc);
 	ubDesc.ppBuffer = &pSkyboxUniformBuffer;
 	addResource(&ubDesc);
-#if defined(VULKAN_HLSL)	
-  ubDesc.ppBuffer = &pParticleUniformBuffer;
-  addResource(&ubDesc);
-#endif
 
 	finishResourceLoading ();
 	LOGINFOF ("Load Time %lld", timer.GetUSec (false) / 1000);
@@ -1285,11 +1269,6 @@ void drawFrame(float deltaTime)
 	BufferUpdateDesc skyboxViewProjCbv = { pSkyboxUniformBuffer, &gProjectView, 0, 0, sizeof(gProjectView) };
 	updateResource(&skyboxViewProjCbv);
 
-#if defined(VULKAN_HLSL)
-  BufferUpdateDesc particleCbv = { pParticleUniformBuffer, &gParticleData, 0, 0, sizeof(gParticleData) };
-  updateResource(&particleCbv);
-#endif
-
 	// update cpu data graph
 	if (cpuUpdateTimer.GetMSec(false) > 500)
 	{
@@ -1444,9 +1423,6 @@ void exitApp()
 
 	removeResource(pProjViewUniformBuffer);
 	removeResource(pSkyboxUniformBuffer);
-#if defined(VULKAN_HLSL)
-  removeResource(pParticleUniformBuffer);
-#endif
 	removeResource(pParticleVertexBuffer);
 	removeResource(pSkyBoxVertexBuffer);
 

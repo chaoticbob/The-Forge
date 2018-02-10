@@ -25,7 +25,23 @@
 #define _USE_MATH_DEFINES
 
 #if defined(VULKAN)
-#define VULKAN_HLSL
+  #define VULKAN_HLSL
+#endif
+
+#if defined(VULKAN_HLSL)
+  #define ADD_UBO_PREFIX(NAME) "var_"##NAME
+  #define GRASS_VERT_MAIN     "VSMain"
+  #define GRASS_TESC_MAIN     "HSMain"
+  #define GRASS_TESE_MAIN     "DSMain"
+  #define GRASS_FRAG_MAIN     "PSMain"
+  #define COMPUTE_COMP_MAIN   "CSMain"
+#else
+  #define ADD_UBO_PREFIX
+  #define GRASS_VERT_MAIN     "main"
+  #define GRASS_TESC_MAIN     "main"
+  #define GRASS_TESE_MAIN     "main"
+  #define GRASS_FRAG_MAIN     "main"
+  #define COMPUTE_COMP_MAIN   "main"
 #endif
 
 // Unit Test for testing Compute Shaders and Tessellation
@@ -173,7 +189,11 @@ HiresTimer gTimer;
 //Example for using roots or will cause linker error with the extern root in FileSystem.cpp
 const char* pszRoots[] =
 {
+#if defined(VULKAN_HLSL)
+	"../../../src/07_Tessellation/" RESOURCE_DIR "/Binary/HLSL/",	// FSR_BinShaders
+#else
 	"../../../src/07_Tessellation/" RESOURCE_DIR "/Binary/",	// FSR_BinShaders
+#endif
 	"../../../src/07_Tessellation/" RESOURCE_DIR "/",			// FSR_SrcShaders
 	"",															// FSR_BinShaders_Common
 	"",															// FSR_SrcShaders_Common
@@ -519,45 +539,13 @@ void initApp(const WindowsDesc* window)
 	
 	hlslFile.Close();
 #elif defined(VULKAN)
- #if defined(VULKAN_HLSL)	
-  File vertGrassFile = {};
-	File fragGrassFile = {};
-
-	vertGrassFile.Open("grass.hlsl.vert.spv", FM_ReadBinary, FSRoot::FSR_BinShaders);
-	grassShader.mVert = { vertGrassFile.GetName(), vertGrassFile.ReadText(), "VSMain" };
-	fragGrassFile.Open("grass.hlsl.frag.spv", FM_ReadBinary, FSRoot::FSR_BinShaders);
-	grassShader.mFrag = { fragGrassFile.GetName(), fragGrassFile.ReadText(), "PSMain" };
-	
-	vertGrassFile.Close();
-	fragGrassFile.Close();
-
-
-	File tescGrassFile = {};
-	File teseGrassFile = {};
-
-	tescGrassFile.Open("grass.hlsl.tesc.spv", FM_ReadBinary, FSRoot::FSR_BinShaders);
-	grassShader.mHull = { tescGrassFile.GetName(), tescGrassFile.ReadText(), "HSMain" };
-	teseGrassFile.Open("grass.hlsl.tese.spv", FM_ReadBinary, FSRoot::FSR_BinShaders);
-	grassShader.mDomain = { teseGrassFile.GetName(), teseGrassFile.ReadText(), "DSMain" };
-
-	tescGrassFile.Close();
-	teseGrassFile.Close();
-
-
-	File computeFile = {};
-
-	computeFile.Open("compute.hlsl.comp.spv", FM_ReadBinary, FSRoot::FSR_BinShaders);
-	computeShader.mComp = { computeFile.GetName(), computeFile.ReadText(), "CSMain" };
-
-	computeFile.Close();
- #else
 	File vertGrassFile = {};
 	File fragGrassFile = {};
 
 	vertGrassFile.Open("grass.vert.spv", FM_ReadBinary, FSRoot::FSR_BinShaders);
-	grassShader.mVert = { vertGrassFile.GetName(), vertGrassFile.ReadText(), "main" };
+	grassShader.mVert = { vertGrassFile.GetName(), vertGrassFile.ReadText(), GRASS_VERT_MAIN };
 	fragGrassFile.Open("grass.frag.spv", FM_ReadBinary, FSRoot::FSR_BinShaders);
-	grassShader.mFrag = { fragGrassFile.GetName(), fragGrassFile.ReadText(), "main" };
+	grassShader.mFrag = { fragGrassFile.GetName(), fragGrassFile.ReadText(), GRASS_FRAG_MAIN };
 	
 	vertGrassFile.Close();
 	fragGrassFile.Close();
@@ -567,9 +555,9 @@ void initApp(const WindowsDesc* window)
 	File teseGrassFile = {};
 
 	tescGrassFile.Open("grass.tesc.spv", FM_ReadBinary, FSRoot::FSR_BinShaders);
-	grassShader.mHull = { tescGrassFile.GetName(), tescGrassFile.ReadText(), "main" };
+	grassShader.mHull = { tescGrassFile.GetName(), tescGrassFile.ReadText(), GRASS_TESC_MAIN };
 	teseGrassFile.Open("grass.tese.spv", FM_ReadBinary, FSRoot::FSR_BinShaders);
-	grassShader.mDomain = { teseGrassFile.GetName(), teseGrassFile.ReadText(), "main" };
+	grassShader.mDomain = { teseGrassFile.GetName(), teseGrassFile.ReadText(), GRASS_TESE_MAIN };
 
 	tescGrassFile.Close();
 	teseGrassFile.Close();
@@ -578,10 +566,9 @@ void initApp(const WindowsDesc* window)
 	File computeFile = {};
 
 	computeFile.Open("compute.comp.spv", FM_ReadBinary, FSRoot::FSR_BinShaders);
-	computeShader.mComp = { computeFile.GetName(), computeFile.ReadText(), "main" };
+	computeShader.mComp = { computeFile.GetName(), computeFile.ReadText(), COMPUTE_COMP_MAIN };
 
 	computeFile.Close();
- #endif
 #elif defined(METAL)
     
     FSRoot shaderRoot = FSRoot::FSR_SrcShaders;
@@ -952,11 +939,7 @@ void drawFrame(float deltaTime)
 	DescriptorData computeParams[4] = {};
 	cmdBindPipeline(cmd, pComputePipeline);
 
-#if defined(VULKAN_HLSL)
-  computeParams[0].pName = "var_GrassUniformBlock";
-#else
-	computeParams[0].pName = "GrassUniformBlock";
-#endif
+	computeParams[0].pName = ADD_UBO_PREFIX("GrassUniformBlock");
 	computeParams[0].ppBuffers = &pGrassUniformBuffer;
 
 	computeParams[1].pName = "Blades";
@@ -1017,11 +1000,7 @@ void drawFrame(float deltaTime)
 		cmdBindPipeline(cmd, pGrassPipelineForWireframe);
 
 	DescriptorData grassParams[1] = {};
-#if defined(VULKAN_HLSL)
-  grassParams[0].pName = "var_GrassUniformBlock";
-#else
-	grassParams[0].pName = "GrassUniformBlock";
-#endif
+	grassParams[0].pName = ADD_UBO_PREFIX("GrassUniformBlock");
 	grassParams[0].ppBuffers = &pGrassUniformBuffer;
 	cmdBindDescriptors(cmd, pGrassRootSignature, 1, grassParams);
 
