@@ -41,11 +41,10 @@
 // TODO : Add Confetti copyright statement here, as well as note that intel code is modified
 
 #if defined(VULKAN)
-  //#define VULKAN_HLSL
+  #define VULKAN_HLSL
 #endif
 
 #if defined(VULKAN_HLSL)
-  #define ADD_UBO_PREFIX(NAME) "var_"##NAME
   #define BASIC_VERT_MAIN             "VSMain"
   #define BASIC_FRAG_MAIN             "PSMain"
   #define SKYBOX_VERT_MAIN            "VSMain"
@@ -54,7 +53,6 @@
   #define EXECUTE_INDIRECT_FRAG_MAIN  "PSMain"
   #define COMPUTE_UPDATE_COMP_MAIN    "CSMain"
 #else
-  #define ADD_UBO_PREFIX
   #define BASIC_VERT_MAIN             "main"
   #define BASIC_FRAG_MAIN             "main"
   #define SKYBOX_VERT_MAIN            "main"
@@ -1282,7 +1280,7 @@ void RenderSubset(unsigned index, const mat4& viewProj, uint32_t frameIdx, Rende
         cmdSetScissor(cmd, 0, 0, pRenderTarget->mDesc.mWidth, pRenderTarget->mDesc.mHeight);
 
 		DescriptorData params[3];
-		params[0].pName = ADD_UBO_PREFIX("instanceBuffer");
+		params[0].pName = "instanceBuffer";
 		params[0].ppBuffers = &gAsteroidSubsets[index].pAsteroidInstanceBuffer;
 		params[1].pName = "uTex0";
 		params[1].ppTextures = &pAsteroidTex;
@@ -1360,7 +1358,7 @@ void RenderSubset(unsigned index, const mat4& viewProj, uint32_t frameIdx, Rende
         cmdSetScissor(cmd, 0, 0, pRenderTarget->mDesc.mWidth, pRenderTarget->mDesc.mHeight);
 
 		DescriptorData indirectParams[5];
-		indirectParams[0].pName = ADD_UBO_PREFIX("uniformBlock");
+		indirectParams[0].pName = "uniformBlock";
 		indirectParams[0].ppBuffers = &pIndirectUniformBuffer;
 		indirectParams[1].pName = "asteroidsStatic";
 		indirectParams[1].ppBuffers = &pStaticAsteroidBuffer;
@@ -1449,7 +1447,7 @@ void drawFrame(float deltaTime)
     cmdSetScissor(cmd, 0, 0, pRenderTarget->mDesc.mWidth, pRenderTarget->mDesc.mHeight);
 
 	DescriptorData skyboxParams[8] = {};
-	skyboxParams[0].pName = ADD_UBO_PREFIX("uniformBlock");
+	skyboxParams[0].pName = "uniformBlock";
 	skyboxParams[0].ppBuffers = &pSkyboxUniformBuffer;
 	skyboxParams[1].pName = "RightText";
 	skyboxParams[1].ppTextures = &pSkyBoxTextures[0];
@@ -1542,7 +1540,7 @@ void drawFrame(float deltaTime)
 
         // Update dynamic asteroid positions using compute shader
 		DescriptorData computeParams[4] = {};
-		computeParams[0].pName = ADD_UBO_PREFIX("uniformBlock");
+		computeParams[0].pName = "uniformBlock";
 		computeParams[0].ppBuffers = &pComputeUniformBuffer[frameIdx];
 		computeParams[1].pName = "asteroidsStatic";
 		computeParams[1].ppBuffers = &pStaticAsteroidBuffer;
@@ -1563,7 +1561,7 @@ void drawFrame(float deltaTime)
         cmdSetScissor(cmd, 0, 0, pRenderTarget->mDesc.mWidth, pRenderTarget->mDesc.mHeight);
 
 		DescriptorData indirectParams[5];
-		indirectParams[0].pName = ADD_UBO_PREFIX("uniformBlock");
+		indirectParams[0].pName = "uniformBlock";
 		indirectParams[0].ppBuffers = &pIndirectUniformBuffer;
 		indirectParams[1].pName = "asteroidsStatic";
 		indirectParams[1].ppBuffers = &pStaticAsteroidBuffer;

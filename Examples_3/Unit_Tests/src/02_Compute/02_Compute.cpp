@@ -29,12 +29,10 @@
 #endif
 
 #if defined(VULKAN_HLSL)
-  #define ADD_UBO_PREFIX(NAME) "var_"##NAME
   #define DISPLAY_VERT_MAIN   "VSMain"
   #define DISPLAY_FRAG_MAIN   "PSMain"
   #define COMPUTE_COMP_MAIN   "CSMain"
 #else
-  #define ADD_UBO_PREFIX
   #define DISPLAY_VERT_MAIN   "main"
   #define DISPLAY_FRAG_MAIN   "main"
   #define COMPUTE_COMP_MAIN   "main"
@@ -655,7 +653,7 @@ void drawFrame(float deltaTime)
     cmdBindPipeline(cmd, pComputePipeline);
     
 	DescriptorData params[2] = {};
-  params[0].pName = ADD_UBO_PREFIX("uniformBlock");
+  params[0].pName = "uniformBlock";
 	params[0].ppBuffers = &pUniformBuffer;
 	params[1].pName = "outputTexture";
 	params[1].ppTextures = &pTextureComputeOutput;

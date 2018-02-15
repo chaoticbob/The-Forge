@@ -27,13 +27,11 @@
 #endif
 
 #if defined(VULKAN_HLSL)
-  #define ADD_UBO_PREFIX(NAME) "var_"##NAME
   #define PROCEDURAL_PLANET_VERT_MAIN   "VSMain"
   #define PROCEDURAL_PLANET_FRAG_MAIN   "PSMain"
   #define BACKGROUND_VERT_MAIN          "VSBGMain"
   #define BACKGROUND_FRAG_MAIN          "PSBGMain"
 #else
-  #define ADD_UBO_PREFIX
   #define PROCEDURAL_PLANET_VERT_MAIN   "main"
   #define PROCEDURAL_PLANET_FRAG_MAIN   "main"
   #define BACKGROUND_VERT_MAIN          "main"
@@ -864,9 +862,9 @@ void drawFrame(float deltaTime)
 	cmdBindPipeline(cmd, pPipelineBG);
 	
 	DescriptorData paramsBG[2] = {};
-	paramsBG[0].pName = ADD_UBO_PREFIX("cbObject");
+	paramsBG[0].pName = "cbObject";
 	paramsBG[0].ppBuffers = &gSphereBuffers[gFrameIndex][0];
-	paramsBG[1].pName = ADD_UBO_PREFIX("cbScreen");
+	paramsBG[1].pName = "cbScreen";
 	paramsBG[1].ppBuffers = &pScreenSizeBuffer;
 
 	cmdBindDescriptors(cmd, pRootSigBG, 2, paramsBG);
@@ -887,13 +885,13 @@ void drawFrame(float deltaTime)
 
     // These params stays the same, we alternate our next param
     DescriptorData params[5] = {};
-    params[0].pName = ADD_UBO_PREFIX("cbCamera");
+    params[0].pName = "cbCamera";
     params[0].ppBuffers = &pBufferUniformCamera[gFrameIndex];
 	
-    params[1].pName = ADD_UBO_PREFIX("cbObject");
+    params[1].pName = "cbObject";
     params[1].ppBuffers = &gSphereBuffers[gFrameIndex][0];
 
-    params[2].pName = ADD_UBO_PREFIX("cbLights");
+    params[2].pName = "cbLights";
     params[2].ppBuffers = &pBufferUniformLights[gFrameIndex];
 
 	params[3].pName = "uEnvTex0";

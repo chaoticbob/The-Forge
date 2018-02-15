@@ -30,11 +30,9 @@
 #endif
 
 #if defined(VULKAN_HLSL)
-  #define ADD_UBO_PREFIX(NAME) "var_"##NAME
   #define RENDER_SCENE_BRDF_VERT_MAIN "VSMain"
   #define RENDER_SCENE_BRDF_FRAG_MAIN "PSMain"
 #else
-  #define ADD_UBO_PREFIX
   #define RENDER_SCENE_BRDF_VERT_MAIN "main"
   #define RENDER_SCENE_BRDF_FRAG_MAIN "main"
 #endif
@@ -671,15 +669,15 @@ void drawFrame(float deltaTime)
     
     // These params stays the same, we alternate our next param
     DescriptorData params[3] = {};
-    params[0].pName = ADD_UBO_PREFIX("cbCamera");
+    params[0].pName = "cbCamera";
     params[0].ppBuffers = &pBufferUniformCamera;
-    params[2].pName = ADD_UBO_PREFIX("cbLights");
+    params[2].pName = "cbLights";
     params[2].ppBuffers = &pBufferUniformLights;
     
     for (int i = 0; i < sphereBuffers.size(); ++i)
     {
         // Add the uniform buffer for every sphere
-        params[1].pName = ADD_UBO_PREFIX("cbObject");
+        params[1].pName = "cbObject";
         params[1].ppBuffers = &sphereBuffers[i];
         
         cmdBindDescriptors(cmd, pRootSigBRDF, 3, params);

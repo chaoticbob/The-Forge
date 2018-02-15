@@ -29,14 +29,12 @@
 #endif
 
 #if defined(VULKAN_HLSL)
-  #define ADD_UBO_PREFIX(NAME) "var_"##NAME
   #define GRASS_VERT_MAIN     "VSMain"
   #define GRASS_TESC_MAIN     "HSMain"
   #define GRASS_TESE_MAIN     "DSMain"
   #define GRASS_FRAG_MAIN     "PSMain"
   #define COMPUTE_COMP_MAIN   "CSMain"
 #else
-  #define ADD_UBO_PREFIX
   #define GRASS_VERT_MAIN     "main"
   #define GRASS_TESC_MAIN     "main"
   #define GRASS_TESE_MAIN     "main"
@@ -939,7 +937,7 @@ void drawFrame(float deltaTime)
 	DescriptorData computeParams[4] = {};
 	cmdBindPipeline(cmd, pComputePipeline);
 
-	computeParams[0].pName = ADD_UBO_PREFIX("GrassUniformBlock");
+	computeParams[0].pName = "GrassUniformBlock";
 	computeParams[0].ppBuffers = &pGrassUniformBuffer;
 
 	computeParams[1].pName = "Blades";
@@ -1000,7 +998,7 @@ void drawFrame(float deltaTime)
 		cmdBindPipeline(cmd, pGrassPipelineForWireframe);
 
 	DescriptorData grassParams[1] = {};
-	grassParams[0].pName = ADD_UBO_PREFIX("GrassUniformBlock");
+	grassParams[0].pName = "GrassUniformBlock";
 	grassParams[0].ppBuffers = &pGrassUniformBuffer;
 	cmdBindDescriptors(cmd, pGrassRootSignature, 1, grassParams);
 

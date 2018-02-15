@@ -32,13 +32,11 @@
 #endif
 
 #if defined(VULKAN_HLSL)
-  #define ADD_UBO_PREFIX(NAME) "var_"##NAME
   #define BASIC_VERT_MAIN   "VSMain"
   #define BASIC_FRAG_MAIN   "PSMain"
   #define SKYBOX_VERT_MAIN  "VSMain"
   #define SKYBOX_FRAG_MAIN  "PSMain"
 #else
-  #define ADD_UBO_PREFIX
   #define BASIC_VERT_MAIN   "main"
   #define BASIC_FRAG_MAIN   "main"
   #define SKYBOX_VERT_MAIN  "main"
@@ -836,7 +834,7 @@ void drawFrame(float deltaTime)
 	cmdBindPipeline(cmd, pSkyBoxDrawPipeline);
 
 	DescriptorData params[7] = {};
-	params[0].pName = ADD_UBO_PREFIX("uniformBlock");
+	params[0].pName = "uniformBlock";
 	params[0].ppBuffers = &pSkyboxUniformBuffer;
 	params[1].pName = "RightText";
 	params[1].ppTextures = &pSkyBoxTextures[0];

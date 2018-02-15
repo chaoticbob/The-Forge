@@ -29,7 +29,6 @@
 #endif
 
 #if defined(VULKAN_HLSL)
-  #define ADD_UBO_PREFIX(NAME) "var_"##NAME
   #define GRAPH_VERT_MAIN     "VSMain"
   #define GRAPH_FRAG_MAIN     "PSMain"
   #define PARTICLE_VERT_MAIN  "VSMain"
@@ -37,7 +36,6 @@
   #define SKYBOX_VERT_MAIN    "VSMain"
   #define SKYBOX_FRAG_MAIN    "PSMain"
 #else
-  #define ADD_UBO_PREFIX
   #define GRAPH_VERT_MAIN     "main"
   #define GRAPH_FRAG_MAIN     "main"
   #define PARTICLE_VERT_MAIN  "main"
@@ -397,7 +395,7 @@ void ParticleThreadDraw(void* pData)
 	params[0].pName = "uTex0";
 	params[0].mCount = sizeof(pImageFileNames) / sizeof(pImageFileNames[0]);
 	params[0].ppTextures = pTextures;
-	params[1].pName = ADD_UBO_PREFIX("uniformBlock");
+	params[1].pName = "uniformBlock";
 	params[1].ppBuffers = &pProjViewUniformBuffer;
 	params[2].pName = "particleRootConstant";
 	params[2].pRootConstant = &gParticleData;
