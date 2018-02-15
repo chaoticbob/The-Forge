@@ -91,9 +91,9 @@ dxc -spirv -nologo -T vs_5_0 -E VSMain -Fo  %BinaryDir%\proceduralPlanet.vert.sp
 IF %ERRORLEVEL% NEQ 0 EXIT /b %ERRORLEVEL%
 dxc -spirv -nologo -T ps_5_0 -E PSMain -Fo  %BinaryDir%\proceduralPlanet.frag.spv %SourceDir%\proceduralPlanet.hlsl
 IF %ERRORLEVEL% NEQ 0 EXIT /b %ERRORLEVEL%
-dxc -spirv -O0 -nologo -T vs_5_0 -E VSBGMain -Fo  %BinaryDir%\backGround.vert.spv %SourceDir%\proceduralPlanet.hlsl
+dxc -spirv -nologo -T vs_5_0 -E VSBGMain -Fo  %BinaryDir%\backGround.vert.spv %SourceDir%\proceduralPlanet.hlsl
 IF %ERRORLEVEL% NEQ 0 EXIT /b %ERRORLEVEL%
-dxc -spirv -O0 -nologo -T ps_5_0 -E PSBGMain -Fo  %BinaryDir%\backGround.frag.spv %SourceDir%\proceduralPlanet.hlsl
+dxc -spirv -nologo -T ps_5_0 -E PSBGMain -Fo  %BinaryDir%\backGround.frag.spv %SourceDir%\proceduralPlanet.hlsl
 IF %ERRORLEVEL% NEQ 0 EXIT /b %ERRORLEVEL%
 
 :: Visibility_Buffer (Not working yet)
